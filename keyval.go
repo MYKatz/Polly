@@ -18,7 +18,7 @@ func NewKeyVal() *KeyVal {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	//defer db.Close()
 	return &KeyVal{db}
 }
 
