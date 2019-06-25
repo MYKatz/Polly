@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 var (
@@ -28,9 +31,23 @@ func main() {
 	checkErr("Unable to open a connection to discord: ", err)
 
 	defer discord.Close()
+	
+	//the following helps the program exit gracefully when ^C is used to quit it
+	sigs := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	//incoming hacky thing - this creates a channel, preventing our main() function from closing on its own, so the bot stays alive while
-	<-make(chan struct{})
+	go func() {
+		sig := <-sigs
+		fmt.Printf("Signal received, %s \n", sig)
+		done <- true
+	}()
+
+	fmt.Println("Polly successfully launched. Awaiting signal...")
+	<-done
+
+	fmt.Println("Quitting")
+	disconnect(discord)
 }
 
 func checkErr(msg string, err error) {
@@ -65,11 +82,12 @@ func readyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
 }
 
 func disconnect(discord *discordgo.Session) {
-	//set status to idle (-1)
+	//set status to offline (-1)
 	err := discord.UpdateStatus(-1, "")
 	if err != nil {
 		panic(fmt.Errorf("Fatal error, could not update status: %s", err))
 	}
+	fmt.Printf("Set Polly's status to idle. Goodbye.")
 }
 
 func getConfigVars() (string, string) {
