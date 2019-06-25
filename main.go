@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	//"github.com/bwmarrin/discordgo"
+	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
 )
 
@@ -14,8 +14,19 @@ var (
 
 func main() {
 	commandPrefix, botKey := getConfigVars()
-	fmt.Printf(commandPrefix)
-	fmt.Printf(botKey)
+	discord, err := discordgo.New("Bot " + botKey)
+	checkErr("Error creating discord session", err)
+	user, err := discord.User("@me")
+	checkErr("Error retrieving bot account", err)
+
+	botID = user.ID
+
+}
+
+func checkErr(msg string, err error) {
+	if err != nil {
+		panic(fmt.Errorf("%s: %+v", msg, err))
+	}
 }
 
 func getConfigVars() (string, string) {
