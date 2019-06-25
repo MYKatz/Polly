@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
-	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/spf13/viper"
 )
 
 var (
 	commandPrefix string
-	botID string
-	botKey string
+	botID         string
+	botKey        string
 )
 
 func main() {
@@ -31,6 +32,8 @@ func main() {
 	checkErr("Unable to open a connection to discord: ", err)
 
 	defer discord.Close()
+
+	OpenDB()
 	//the following helps the program exit gracefully when ^C is used to quit it
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
@@ -61,7 +64,7 @@ func commandHandler(discord *discordgo.Session, message *discordgo.MessageCreate
 		return
 	}
 	content := message.Content
-	if string(content[0]) != commandPrefix{
+	if string(content[0]) != commandPrefix {
 		fmt.Printf("message received, but doesn't start with %s: %s \n", commandPrefix, content)
 		return
 	}
