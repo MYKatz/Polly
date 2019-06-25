@@ -7,10 +7,10 @@ import (
 )
 
 type KeyVal struct {
-	test string
+	db *badger.DB
 }
 
-func OpenDB() {
+func NewKeyVal() *KeyVal {
 	opts := badger.DefaultOptions("/tmp/badger")
 	opts.Dir = "/tmp/badger"
 	opts.ValueDir = "/tmp/badger"
@@ -19,4 +19,37 @@ func OpenDB() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+	return &KeyVal{db}
+}
+
+func (kv *KeyVal) Set(key string, val string) error {
+	err := kv.db.Update(func(txn *badger.Txn) error {
+		err := txn.Set([]byte(key), []byte(val))
+		return err
+	})
+	return err
+}
+
+func (kv *KeyVal) Get(key string) (string, error) {
+	var valCopy string
+	err := kv.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(key))
+		if err != nil {
+			return err
+		}
+
+		err = item.Value(func(val []byte) error {
+			valCopy = string(append([]byte{}, val...))
+			return nil
+		})
+
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return valCopy, err
 }

@@ -33,7 +33,8 @@ func main() {
 
 	defer discord.Close()
 
-	OpenDB()
+	NewKeyVal() //look at keyval.go
+
 	//the following helps the program exit gracefully when ^C is used to quit it
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
