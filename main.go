@@ -16,7 +16,7 @@ var (
 )
 
 func main() {
-	commandPrefix, botKey := getConfigVars()
+	commandPrefix, botKey = getConfigVars() //a note for future me: the commandPrefix was originally out of scope of my other functions because I was using the := operator. This causes the variables to fall out of scope after closing curly bracket. The more you knoowwwww
 	fmt.Printf("Initializing Polly with command prefix '%s' \n", commandPrefix)
 	discord, err := discordgo.New("Bot " + botKey)
 	checkErr("Error creating discord session", err)
@@ -31,7 +31,6 @@ func main() {
 	checkErr("Unable to open a connection to discord: ", err)
 
 	defer discord.Close()
-	
 	//the following helps the program exit gracefully when ^C is used to quit it
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
@@ -63,12 +62,12 @@ func commandHandler(discord *discordgo.Session, message *discordgo.MessageCreate
 	}
 	content := message.Content
 	if string(content[0]) != commandPrefix{
-		fmt.Printf("message received, but doesn't start with !: %s \n", content)
+		fmt.Printf("message received, but doesn't start with %s: %s \n", commandPrefix, content)
 		return
 	}
 	//do something with the content here later!
 	//for now, we'll just print it
-	fmt.Printf("From %s: '%s'", message.Author, content)
+	fmt.Printf("From %s: '%s' \n", message.Author, content)
 	return
 }
 
@@ -87,7 +86,7 @@ func disconnect(discord *discordgo.Session) {
 	if err != nil {
 		panic(fmt.Errorf("Fatal error, could not update status: %s", err))
 	}
-	fmt.Printf("Set Polly's status to idle. Goodbye.")
+	fmt.Println("Set Polly's status to idle. Goodbye.")
 }
 
 func getConfigVars() (string, string) {
