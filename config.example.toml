@@ -1,0 +1,5 @@
+#How you want your bot to be called. Usually something like "!"
+COMMAND_PREFIX=
+
+#Discord bot key. Get this by registering a bot on the Discord developers page
+BOT_KEY=
