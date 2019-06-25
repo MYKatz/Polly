@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -12,12 +13,13 @@ import (
 
 var (
 	commandPrefix string
+	botName       string
 	botID         string
 	botKey        string
 )
 
 func main() {
-	commandPrefix, botKey = getConfigVars() //a note for future me: the commandPrefix was originally out of scope of my other functions because I was using the := operator. This causes the variables to fall out of scope after closing curly bracket. The more you knoowwwww
+	commandPrefix, botKey, botName = getConfigVars() //a note for future me: the commandPrefix was originally out of scope of my other functions because I was using the := operator. This causes the variables to fall out of scope after closing curly bracket. The more you knoowwwww
 	fmt.Printf("Initializing Polly with command prefix '%s' \n", commandPrefix)
 	discord, err := discordgo.New("Bot " + botKey)
 	checkErr("Error creating discord session", err)
@@ -69,7 +71,8 @@ func commandHandler(discord *discordgo.Session, message *discordgo.MessageCreate
 	}
 	//do something with the content here later!
 	//for now, we'll just print it
-	fmt.Printf("From %s: '%s' \n", message.Author, content)
+	//fmt.Printf("From %s: '%s' \n", message.Author, content)
+	commandChooser(discord, message)
 	return
 }
 
@@ -91,8 +94,9 @@ func disconnect(discord *discordgo.Session) {
 	fmt.Println("Set Polly's status to idle. Goodbye.")
 }
 
-func getConfigVars() (string, string) {
+func getConfigVars() (string, string, string) {
 	viper.AddConfigPath(".")
+	viper.SetDefault("BOT_NAME", "polly")
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Errorf("Fatal error, check config file/environment variables: %s \n", err))
@@ -105,5 +109,9 @@ func getConfigVars() (string, string) {
 	if key == "" {
 		panic(fmt.Errorf("Fatal error, check BOT_KEY environment variable"))
 	}
-	return prefix, key
+	name := strings.ToLower(viper.GetString("BOT_NAME"))
+	if name == "" {
+		panic(fmt.Errorf("Empty BOT_NAME variable, check config"))
+	}
+	return prefix, key, name
 }
