@@ -47,18 +47,19 @@ func isAdmin(discord *discordgo.Session, userID string, channelID string) bool {
 	return false
 }
 
-func setup(discord *discordgo.Session, command []string) error {
+func setup(discord *discordgo.Session, command []string) ([]string, error) {
 	//get message history of each channel
 	messagesPerChannel := 100 //max # of messages per channel. arbitrary, to be turned into a env variable later
 	channels := command[2:]
-	fmt.Println(channels)
+
+	chatlogs := []string{}
 
 	for i := 0; i < len(channels)-1; i++ { //the -1 is cause we append an empty string earlier
 		channelID := cleanChannelId(channels[i])
 		fmt.Println(channelID)
 		messages, err := discord.ChannelMessages(channelID, messagesPerChannel, "", "", "")
 		if err != nil {
-			return nil
+			continue
 		}
 		for j := 0; j < len(messages); j++ {
 			content := messages[j].Content
@@ -67,17 +68,18 @@ func setup(discord *discordgo.Session, command []string) error {
 			isProbablyBotCommand, _ := regexp.MatchString("[!$%^&*,.?:{}|<>`]", first)
 			if messages[j].Author.ID != botID && !isProbablyBotCommand {
 				fmt.Printf("%s: %s, \n", author, content)
+				chatlogs = append(chatlogs, content)
 			}
 		}
 	}
-	return nil
+	return chatlogs, nil
 }
 
 func cleanChannelId(channelID string) string {
 	//converts <#xyz> id to 'xyz'
 	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
 	if err != nil {
-		fmt.Errorf("Error: %s", err)
+		fmt.Printf("Error: %s", err)
 	}
 	return reg.ReplaceAllString(channelID, "")
 }
@@ -103,8 +105,13 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 	case "setup":
 		admin := isAdmin(discord, message.Author.ID, message.ChannelID)
 		if admin {
-			discord.ChannelMessageSend(message.ChannelID, "Sure thing, you're an admin!")
-			setup(discord, command)
+
+			func() {
+				discord.ChannelMessageSend(message.ChannelID, "Sure thing, you're an admin!")
+				go setup(discord, command)
+				defer discord.ChannelMessageSend(message.ChannelID, ":bird: All set up :bird:")
+			}()
+
 		} else {
 			discord.ChannelMessageSend(message.ChannelID, "You must have an administrator role to use this command.")
 		}
