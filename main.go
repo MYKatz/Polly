@@ -17,6 +17,7 @@ var (
 	botID         string
 	botKey        string
 	keystore      *KeyVal
+	tenorKey      string
 )
 
 func main() {
@@ -116,6 +117,10 @@ func getConfigVars() (string, string, string) {
 	name := strings.ToLower(viper.GetString("BOT_NAME"))
 	if name == "" {
 		panic(fmt.Errorf("Empty BOT_NAME variable, check config"))
+	}
+	tenorKey := viper.GetString("TENOR_KEY")
+	if tenorKey == "" {
+		fmt.Printf("TENOR_KEY not specified. The bot will still run, but meme commands will not work.")
 	}
 	return prefix, key, name
 }

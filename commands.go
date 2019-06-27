@@ -53,6 +53,17 @@ func serverID(discord *discordgo.Session, message *discordgo.MessageCreate) stri
 	return c.GuildID
 }
 
+func generateMessage(guildid string) (string, error) {
+	markov, err := keystore.Get(guildid + ":markov")
+	if err != nil || markov == "" {
+		return "", fmt.Errorf("Markov Error")
+	} else {
+		m := gojam.NewMarkov(1, " ")
+		m.FromJSON([]byte(markov))
+		return m.GenerateExample(), nil
+	}
+}
+
 func setup(discord *discordgo.Session, command []string) (*gojam.Markov, error) {
 	//get message history of each channel
 	messagesPerChannel := 100 //max # of messages per channel. arbitrary, to be turned into a env variable later
@@ -127,13 +138,27 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 	case "dance":
 		discord.ChannelMessageSend(message.ChannelID, ":dancer: Dancing! :dancer:") //w emojis
 	case "say":
-		markov, err := keystore.Get(serverID(discord, message) + ":markov")
-		if err != nil || markov == "" {
+		gid := serverID(discord, message)
+		msg, err := generateMessage(gid)
+		if err != nil {
 			discord.ChannelMessageSend(message.ChannelID, "I haven't been set up yet!")
 		} else {
-			m := gojam.NewMarkov(1, " ")
-			m.FromJSON([]byte(markov))
-			discord.ChannelMessageSend(message.ChannelID, m.GenerateExample())
+			discord.ChannelMessageSend(message.ChannelID, msg)
+		}
+	case "meme":
+		gid := serverID(discord, message)
+		msg, err := generateMessage(gid)
+		if err != nil {
+			discord.ChannelMessageSend(message.ChannelID, "I haven't been set up yet!")
+		} else {
+			fmt.Println(msg)
+			embed := &discordgo.MessageEmbed{
+				Title: msg,
+				Image: &discordgo.MessageEmbedImage{
+					URL: getMeme(string(msg)),
+				},
+			}
+			discord.ChannelMessageSendEmbed(message.ChannelID, embed)
 		}
 	default:
 		msg := `= Welcome To Polly! =

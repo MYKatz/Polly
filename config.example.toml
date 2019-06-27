@@ -6,3 +6,6 @@ BOT_NAME="Polly"
 
 #Discord bot key. Get this by registering a bot on the Discord developers page
 BOT_KEY=
+
+#Tenor API key. Necessary for meme commands, but the bot will do without if need be. See here: https://tenor.com/gifapi/documentation#quickstart
+TENOR_KEY=""
