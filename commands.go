@@ -56,7 +56,7 @@ func setup(discord *discordgo.Session, command []string) (*gojam.Markov, error) 
 	//get message history of each channel
 	messagesPerChannel := 100 //max # of messages per channel. arbitrary, to be turned into a env variable later
 	channels := command[2:]
-
+	processedAMsg := false
 	mark := gojam.NewMarkov(1, " ")
 
 	for i := 0; i < len(channels)-1; i++ { //the -1 is cause we append an empty string earlier
@@ -72,10 +72,14 @@ func setup(discord *discordgo.Session, command []string) (*gojam.Markov, error) 
 			author := messages[j].Author.ID
 			isProbablyBotCommand, _ := regexp.MatchString("[!$%^&*,.?:{}|<>`]", first)
 			if messages[j].Author.ID != botID && !isProbablyBotCommand {
+				processedAMsg = true
 				fmt.Printf("%s: %s, \n", author, content)
 				mark.TrainOnExample(content)
 			}
 		}
+	}
+	if !processedAMsg {
+		return mark, fmt.Errorf("No messages found")
 	}
 	return mark, nil
 }
@@ -101,8 +105,13 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 		admin := isAdmin(discord, message.Author.ID, message.ChannelID)
 		if admin {
 			discord.ChannelMessageSend(message.ChannelID, "Sure thing, gimme a sec")
-			m, _ = setup(discord, command)
-			defer discord.ChannelMessageSend(message.ChannelID, ":bird: All set up :bird:")
+			var err error
+			m, err = setup(discord, command)
+			if err != nil {
+				discord.ChannelMessageSend(message.ChannelID, "Error: no messages found")
+			} else {
+				discord.ChannelMessageSend(message.ChannelID, ":bird: All set up :bird:")
+			}
 		} else {
 			discord.ChannelMessageSend(message.ChannelID, "You must have an administrator role to use this command.")
 		}
@@ -116,17 +125,23 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 	case "dance":
 		discord.ChannelMessageSend(message.ChannelID, ":dancer: Dancing! :dancer:") //w emojis
 	case "say":
-		discord.ChannelMessageSend(message.ChannelID, m.GenerateExample()) //w emojis
+		if m == nil || len(m.Chain) == 0 {
+			discord.ChannelMessageSend(message.ChannelID, "I haven't been set up yet!")
+		} else {
+			discord.ChannelMessageSend(message.ChannelID, m.GenerateExample())
+		}
 	default:
 		msg := `= Welcome To Polly! =
 
 [ Commands ]
-	Admin Commands:
-		- setup #channel1 #channel2 #channel3... :: takes a space-separated list of channels to learn from. If channels are unspecified, will use all of them.
+	= Admin Commands =
+		- setup #channel1 #channel2 #channel3... :: takes a space-separated list of channels to learn from.
 		- setmode silent/normal/chatty :: silent prevents the bot from speaking unless specifically invoked. normal/chatty allow the bot to speak randomly in the chat, but degree varies bassed on mode.
-	User Commands:
+	
+	= User Commands =
 		- dance :: a test command
-		- say :: get Polly to say something!`
+		- say :: get Polly to say something!
+		- meme :: get Polly to make a meme`
 		discord.ChannelMessageSend(message.ChannelID, markdownWrapper("asciidoc", msg))
 	}
 	return
