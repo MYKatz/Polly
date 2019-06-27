@@ -7,7 +7,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/MYKatz/gojam"
 	"github.com/bwmarrin/discordgo"
+)
+
+var (
+	m *gojam.Markov
 )
 
 func markdownWrapper(lang string, message string) string {
@@ -47,12 +52,12 @@ func isAdmin(discord *discordgo.Session, userID string, channelID string) bool {
 	return false
 }
 
-func setup(discord *discordgo.Session, command []string) ([]string, error) {
+func setup(discord *discordgo.Session, command []string) (*gojam.Markov, error) {
 	//get message history of each channel
 	messagesPerChannel := 100 //max # of messages per channel. arbitrary, to be turned into a env variable later
 	channels := command[2:]
 
-	chatlogs := []string{}
+	mark := gojam.NewMarkov(1, " ")
 
 	for i := 0; i < len(channels)-1; i++ { //the -1 is cause we append an empty string earlier
 		channelID := cleanChannelId(channels[i])
@@ -68,11 +73,11 @@ func setup(discord *discordgo.Session, command []string) ([]string, error) {
 			isProbablyBotCommand, _ := regexp.MatchString("[!$%^&*,.?:{}|<>`]", first)
 			if messages[j].Author.ID != botID && !isProbablyBotCommand {
 				fmt.Printf("%s: %s, \n", author, content)
-				chatlogs = append(chatlogs, content)
+				mark.TrainOnExample(content)
 			}
 		}
 	}
-	return chatlogs, nil
+	return mark, nil
 }
 
 func cleanChannelId(channelID string) string {
@@ -92,7 +97,27 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 		return
 	}
 	switch command[1] {
-	case "":
+	case "setup":
+		admin := isAdmin(discord, message.Author.ID, message.ChannelID)
+		if admin {
+			discord.ChannelMessageSend(message.ChannelID, "Sure thing, gimme a sec")
+			m, _ = setup(discord, command)
+			defer discord.ChannelMessageSend(message.ChannelID, ":bird: All set up :bird:")
+		} else {
+			discord.ChannelMessageSend(message.ChannelID, "You must have an administrator role to use this command.")
+		}
+	case "setmode":
+		admin := isAdmin(discord, message.Author.ID, message.ChannelID)
+		if admin {
+			discord.ChannelMessageSend(message.ChannelID, "Mode set")
+		} else {
+			discord.ChannelMessageSend(message.ChannelID, "You must have an administrator role to use this command.")
+		}
+	case "dance":
+		discord.ChannelMessageSend(message.ChannelID, ":dancer: Dancing! :dancer:") //w emojis
+	case "say":
+		discord.ChannelMessageSend(message.ChannelID, m.GenerateExample()) //w emojis
+	default:
 		msg := `= Welcome To Polly! =
 
 [ Commands ]
@@ -100,32 +125,9 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 		- setup #channel1 #channel2 #channel3... :: takes a space-separated list of channels to learn from. If channels are unspecified, will use all of them.
 		- setmode silent/normal/chatty :: silent prevents the bot from speaking unless specifically invoked. normal/chatty allow the bot to speak randomly in the chat, but degree varies bassed on mode.
 	User Commands:
-		- dance :: a test command`
+		- dance :: a test command
+		- say :: get Polly to say something!`
 		discord.ChannelMessageSend(message.ChannelID, markdownWrapper("asciidoc", msg))
-	case "setup":
-		admin := isAdmin(discord, message.Author.ID, message.ChannelID)
-		if admin {
-
-			func() {
-				discord.ChannelMessageSend(message.ChannelID, "Sure thing, you're an admin!")
-				go setup(discord, command)
-				defer discord.ChannelMessageSend(message.ChannelID, ":bird: All set up :bird:")
-			}()
-
-		} else {
-			discord.ChannelMessageSend(message.ChannelID, "You must have an administrator role to use this command.")
-		}
-	case "setmode":
-		admin := isAdmin(discord, message.Author.ID, message.ChannelID)
-		if admin {
-			discord.ChannelMessageSend(message.ChannelID, "Sure thing, you're an admin!")
-		} else {
-			discord.ChannelMessageSend(message.ChannelID, "You must have an administrator role to use this command.")
-		}
-	case "dance":
-		discord.ChannelMessageSend(message.ChannelID, ":dancer: Dancing! :dancer:") //w emojis
-	default:
-		discord.ChannelMessageSend(message.ChannelID, "Unrecognized command")
 	}
 	return
 }
