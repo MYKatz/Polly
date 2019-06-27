@@ -11,10 +11,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var (
-	m *gojam.Markov
-)
-
 func markdownWrapper(lang string, message string) string {
 	//hack for working with backticks in go strings
 	backticks := "`" + "`" + "`"
@@ -50,6 +46,11 @@ func isAdmin(discord *discordgo.Session, userID string, channelID string) bool {
 		}
 	}
 	return false
+}
+
+func serverID(discord *discordgo.Session, message *discordgo.MessageCreate) string {
+	c, _ := discord.Channel(message.ChannelID)
+	return c.GuildID
 }
 
 func setup(discord *discordgo.Session, command []string) (*gojam.Markov, error) {
@@ -106,10 +107,11 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 		if admin {
 			discord.ChannelMessageSend(message.ChannelID, "Sure thing, gimme a sec")
 			var err error
-			m, err = setup(discord, command)
+			m, err := setup(discord, command)
 			if err != nil {
 				discord.ChannelMessageSend(message.ChannelID, "Error: no messages found")
 			} else {
+				keystore.Set(serverID(discord, message)+":markov", string(m.ToJSON()))
 				discord.ChannelMessageSend(message.ChannelID, ":bird: All set up :bird:")
 			}
 		} else {
@@ -125,9 +127,12 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 	case "dance":
 		discord.ChannelMessageSend(message.ChannelID, ":dancer: Dancing! :dancer:") //w emojis
 	case "say":
-		if m == nil || len(m.Chain) == 0 {
+		markov, err := keystore.Get(serverID(discord, message) + ":markov")
+		if err != nil || markov == "" {
 			discord.ChannelMessageSend(message.ChannelID, "I haven't been set up yet!")
 		} else {
+			m := gojam.NewMarkov(1, " ")
+			m.FromJSON([]byte(markov))
 			discord.ChannelMessageSend(message.ChannelID, m.GenerateExample())
 		}
 	default:

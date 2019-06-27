@@ -16,6 +16,7 @@ var (
 	botName       string
 	botID         string
 	botKey        string
+	keystore      *KeyVal
 )
 
 func main() {
@@ -34,6 +35,9 @@ func main() {
 	checkErr("Unable to open a connection to discord: ", err)
 
 	defer discord.Close()
+
+	//database worker
+	keystore = NewKeyVal()
 
 	//the following helps the program exit gracefully when ^C is used to quit it
 	sigs := make(chan os.Signal, 1)
