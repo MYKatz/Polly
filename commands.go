@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"regexp"
 	"strings"
 
@@ -105,6 +106,26 @@ func cleanChannelId(channelID string) string {
 	return reg.ReplaceAllString(channelID, "")
 }
 
+func modeHandler(discord *discordgo.Session, message *discordgo.MessageCreate) {
+	mode, err := keystore.Get(serverID(discord, message) + ":mode")
+	gid := serverID(discord, message)
+	msg, err := generateMessage(gid)
+	if err == nil {
+		if mode == "normal" {
+			r := rand.Intn(20)
+			if r == 0 {
+				discord.ChannelMessageSend(message.ChannelID, msg)
+			}
+		}
+		if mode == "chatty" {
+			r := rand.Intn(5)
+			if r == 0 {
+				discord.ChannelMessageSend(message.ChannelID, msg)
+			}
+		}
+	}
+}
+
 func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	command := strings.Fields(strings.ToLower(message.Content)) //note that channel names (hashtags) get converted to ID numbers, so this doesn't affect them
 	command = append(command, "")
@@ -112,7 +133,7 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 	if strings.ToLower(command[0]) != (commandPrefix + strings.ToLower(botName)) {
 		return
 	}
-	switch command[1] {
+	switch strings.ToLower(command[1]) {
 	case "setup":
 		admin := isAdmin(discord, message.Author.ID, message.ChannelID)
 		if admin {
@@ -123,6 +144,7 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 				discord.ChannelMessageSend(message.ChannelID, "Error: no messages found")
 			} else {
 				keystore.Set(serverID(discord, message)+":markov", string(m.ToJSON()))
+				keystore.Set(serverID(discord, message)+":mode", "normal")
 				discord.ChannelMessageSend(message.ChannelID, ":bird: All set up :bird:")
 			}
 		} else {
@@ -131,6 +153,14 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 	case "setmode":
 		admin := isAdmin(discord, message.Author.ID, message.ChannelID)
 		if admin {
+			switch strings.ToLower(command[2]) {
+			case "silent":
+				keystore.Set(serverID(discord, message)+":mode", "silent")
+			case "normal":
+				keystore.Set(serverID(discord, message)+":mode", "normal")
+			case "chatty":
+				keystore.Set(serverID(discord, message)+":mode", "chatty")
+			}
 			discord.ChannelMessageSend(message.ChannelID, "Mode set")
 		} else {
 			discord.ChannelMessageSend(message.ChannelID, "You must have an administrator role to use this command.")
