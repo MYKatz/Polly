@@ -2,3 +2,6 @@
 config.toml
 
 Polly
+
+presetgen/*.txt
+presetgen/gen

@@ -156,12 +156,16 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 			switch strings.ToLower(command[2]) {
 			case "silent":
 				keystore.Set(serverID(discord, message)+":mode", "silent")
+				discord.ChannelMessageSend(message.ChannelID, "Mode set")
 			case "normal":
 				keystore.Set(serverID(discord, message)+":mode", "normal")
+				discord.ChannelMessageSend(message.ChannelID, "Mode set")
 			case "chatty":
 				keystore.Set(serverID(discord, message)+":mode", "chatty")
+				discord.ChannelMessageSend(message.ChannelID, "Mode set")
+			default:
+				discord.ChannelMessageSend(message.ChannelID, "Invalid option")
 			}
-			discord.ChannelMessageSend(message.ChannelID, "Mode set")
 		} else {
 			discord.ChannelMessageSend(message.ChannelID, "You must have an administrator role to use this command.")
 		}
