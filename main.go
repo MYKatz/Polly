@@ -82,7 +82,7 @@ func commandHandler(discord *discordgo.Session, message *discordgo.MessageCreate
 }
 
 func readyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
-	err := discord.UpdateStatus(0, "Polly want a cracker")
+	err := discord.UpdateStatus(0, "with Markov Chains")
 	if err != nil {
 		panic(fmt.Errorf("Fatal error, could not update status: %s", err))
 	}
