@@ -119,6 +119,7 @@ func modeHandler(discord *discordgo.Session, message *discordgo.MessageCreate) {
 		}
 		if mode == "chatty" {
 			r := rand.Intn(5)
+			fmt.Println(r)
 			if r == 0 {
 				discord.ChannelMessageSend(message.ChannelID, msg)
 			}
@@ -169,6 +170,20 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 		} else {
 			discord.ChannelMessageSend(message.ChannelID, "You must have an administrator role to use this command.")
 		}
+	case "usepreset":
+		admin := isAdmin(discord, message.Author.ID, message.ChannelID)
+		if admin {
+			m, err := usePreset(command[2])
+			if err != nil {
+				discord.ChannelMessageSend(message.ChannelID, "Invalid option")
+			} else {
+				keystore.Set(serverID(discord, message)+":markov", string(m.ToJSON()))
+				keystore.Set(serverID(discord, message)+":mode", "normal")
+				discord.ChannelMessageSend(message.ChannelID, ":bird: All set up :bird:")
+			}
+		} else {
+			discord.ChannelMessageSend(message.ChannelID, "You must have an administrator role to use this command.")
+		}
 	case "dance":
 		discord.ChannelMessageSend(message.ChannelID, ":dancer: Dancing! :dancer:") //w emojis
 	case "say":
@@ -201,9 +216,8 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 	= Admin Commands =
 		- setup #channel1 #channel2 #channel3... :: takes a space-separated list of channels to learn from.
 		- setmode silent/normal/chatty :: silent prevents the bot from speaking unless specifically invoked. normal/chatty allow the bot to speak randomly in the chat, but degree varies bassed on mode.
-	
+		- usepreset kanye/beemovie/discord :: alternative to setup, use one of the presets to train Polly
 	= User Commands =
-		- dance :: a test command
 		- say :: get Polly to say something!
 		- meme :: get Polly to make a meme`
 		discord.ChannelMessageSend(message.ChannelID, markdownWrapper("asciidoc", msg))
