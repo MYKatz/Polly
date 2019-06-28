@@ -1,3 +1,7 @@
+ADD POLLY TO YOUR SERVER:https://discordapp.com/api/oauth2/authorize?client_id=592958984730837002&permissions=117760&scope=bot
+JOIN THE TEST SERVER: https://discord.gg/k5VtFz
+DETAILED USAGE AND INSTALLATION INSTRUCTIONS ARE DOWN BELOW!
+
 ![Discord Hack Week!](img/hackweek.jpeg)
 
 
