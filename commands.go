@@ -110,6 +110,7 @@ func modeHandler(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	mode, err := keystore.Get(serverID(discord, message) + ":mode")
 	gid := serverID(discord, message)
 	msg, err := generateMessage(gid)
+	fmt.Println(mode)
 	if err == nil {
 		if mode == "normal" {
 			r := rand.Intn(20)
