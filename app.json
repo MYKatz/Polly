@@ -1,0 +1,7 @@
+{
+    "name": "Polly Discord Bot",
+    "description": "Cleverbot that uses Markov chains to mimic your messages",
+    "repository": "https://github.com/MYKatz/Polly",
+    "logo": "https://i.imgur.com/YkWJBuh.png",
+    "keywords": ["discord", "nlp", "messaging"]
+  }
