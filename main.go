@@ -102,10 +102,12 @@ func disconnect(discord *discordgo.Session) {
 
 func getConfigVars() (string, string, string) {
 	viper.AddConfigPath(".")
+	viper.AutomaticEnv()
 	viper.SetDefault("BOT_NAME", "polly")
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Fatal error, check config file/environment variables: %s \n", err))
+		//panic(fmt.Errorf("Fatal error, check config file/environment variables: %s \n", err))
+		//do nothing so environment variables work. The following if statements should catch any actual errors, so this can be commented out
 	}
 	prefix := viper.GetString("COMMAND_PREFIX")
 	if prefix == "" || len(prefix) != 1 {

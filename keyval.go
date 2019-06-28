@@ -11,7 +11,7 @@ type KeyVal struct {
 }
 
 func NewKeyVal() *KeyVal {
-	opts := badger.DefaultOptions("/tmp/badger")
+	opts := badger.DefaultOptions
 	opts.Dir = "/tmp/badger"
 	opts.ValueDir = "/tmp/badger"
 	db, err := badger.Open(opts)
@@ -31,17 +31,14 @@ func (kv *KeyVal) Set(key string, val string) error {
 }
 
 func (kv *KeyVal) Get(key string) (string, error) {
-	var valCopy string
+	var valCopy []byte
 	err := kv.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(key))
 		if err != nil {
 			return err
 		}
 
-		err = item.Value(func(val []byte) error {
-			valCopy = string(append([]byte{}, val...))
-			return nil
-		})
+		valCopy, err = item.Value()
 
 		if err != nil {
 			return err
@@ -51,5 +48,5 @@ func (kv *KeyVal) Get(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return valCopy, err
+	return string(valCopy), err
 }
