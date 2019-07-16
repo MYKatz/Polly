@@ -65,15 +65,16 @@ func generateMessage(guildid string) (string, error) {
 	}
 }
 
-func setup(discord *discordgo.Session, command []string) (*gojam.Markov, error) {
+func setup(discord *discordgo.Session, command []string) (*gojam.Markov, []string, error) {
 	//get message history of each channel
 	messagesPerChannel := 100 //max # of messages per channel. arbitrary, to be turned into a env variable later
 	channels := command[2:]
 	processedAMsg := false
 	mark := gojam.NewMarkov(1, " ")
-
+	cleanedChannels := make([]string, len(channels)-1)
 	for i := 0; i < len(channels)-1; i++ { //the -1 is cause we append an empty string earlier
 		channelID := cleanChannelId(channels[i])
+		cleanedChannels = append(cleanedChannels, channelID)
 		fmt.Println(channelID)
 		messages, err := discord.ChannelMessages(channelID, messagesPerChannel, "", "", "")
 		if err != nil {
@@ -92,9 +93,9 @@ func setup(discord *discordgo.Session, command []string) (*gojam.Markov, error) 
 		}
 	}
 	if !processedAMsg {
-		return mark, fmt.Errorf("No messages found")
+		return mark, cleanedChannels, fmt.Errorf("No messages found")
 	}
-	return mark, nil
+	return mark, cleanedChannels, nil
 }
 
 func cleanChannelId(channelID string) string {
@@ -128,6 +129,37 @@ func modeHandler(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	}
 }
 
+func idInChannels(id string, channels []string) bool {
+	for _, b := range channels {
+		if b == id {
+			return true
+		}
+	}
+	return false
+}
+
+func messageHandler(discord *discordgo.Session, message *discordgo.MessageCreate) {
+	sID := serverID(discord, message)
+	chans, err := keystore.Get(sID + ":channels")
+	if err != nil || len(chans) == 0 {
+		fmt.Println("error w/ accessing channels from keyval store")
+		return
+	}
+	messageChannel := message.ChannelID
+	channels := strings.Split(chans, ",")
+	processMessage := idInChannels(messageChannel, channels)
+	if processMessage {
+		markov, err := keystore.Get(sID + ":markov")
+		if err != nil {
+			return
+		}
+		m := gojam.NewMarkov(1, " ")
+		m.FromJSON([]byte(markov))
+		m.TrainOnExample(message.Content)
+		keystore.Set(sID+":markov", string(m.ToJSON()))
+	}
+}
+
 func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	command := strings.Fields(strings.ToLower(message.Content)) //note that channel names (hashtags) get converted to ID numbers, so this doesn't affect them
 	command = append(command, "")
@@ -141,12 +173,18 @@ func commandChooser(discord *discordgo.Session, message *discordgo.MessageCreate
 		if admin {
 			discord.ChannelMessageSend(message.ChannelID, "Sure thing, gimme a sec")
 			var err error
-			m, err := setup(discord, command)
+			m, chans, err := setup(discord, command)
 			if err != nil {
 				discord.ChannelMessageSend(message.ChannelID, "Error: no messages found")
 			} else {
-				keystore.Set(serverID(discord, message)+":markov", string(m.ToJSON()))
-				keystore.Set(serverID(discord, message)+":mode", "normal")
+				sID := serverID(discord, message)
+				channels := strings.Join(chans, ",")
+				keystore.Set(sID+":markov", string(m.ToJSON()))
+				keystore.Set(sID+":channels", channels)
+				_, err := keystore.Get(sID + ":mode")
+				if err != nil {
+					keystore.Set(sID+":mode", "normal")
+				}
 				discord.ChannelMessageSend(message.ChannelID, ":bird: All set up :bird:")
 			}
 		} else {
