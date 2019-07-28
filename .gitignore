@@ -5,3 +5,5 @@ Polly
 
 presetgen/*.txt
 presetgen/gen
+
+checkusers/config.toml
