@@ -82,6 +82,9 @@ func setup(discord *discordgo.Session, command []string) (*gojam.Markov, []strin
 		}
 		for j := 0; j < len(messages); j++ {
 			content := messages[j].Content
+			if len(content) < 1 {
+				continue
+			}
 			first := string(content[0])
 			author := messages[j].Author.ID
 			isProbablyBotCommand, _ := regexp.MatchString("[!$%^&*,.?:{}|<>`]", first)
