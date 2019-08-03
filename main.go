@@ -69,10 +69,10 @@ func commandHandler(discord *discordgo.Session, message *discordgo.MessageCreate
 	if user.ID == botID || user.Bot {
 		return
 	}
+	content := message.Content
 	if len(content) < 1 {
 		return
 	}
-	content := message.Content
 	if string(content[0]) != commandPrefix {
 		fmt.Printf("message received, but doesn't start with %s: %s \n", commandPrefix, content)
 		modeHandler(discord, message)
